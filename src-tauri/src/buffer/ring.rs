@@ -81,4 +81,78 @@ mod tests {
         buf.clear();
         assert_eq!(buf.len(), 0);
     }
+
+    #[test]
+    fn test_ring_buffer_get_valid_index() {
+        let mut buf = RingBuffer::new(10);
+        buf.push(42u32);
+        buf.push(99u32);
+        assert_eq!(buf.get(0), Some(&42));
+        assert_eq!(buf.get(1), Some(&99));
+    }
+
+    #[test]
+    fn test_ring_buffer_get_out_of_bounds() {
+        let buf: RingBuffer<u32> = RingBuffer::new(10);
+        assert_eq!(buf.get(0), None);
+    }
+
+    #[test]
+    fn test_ring_buffer_find_present() {
+        let mut buf = RingBuffer::new(10);
+        for i in 0u32..5 {
+            buf.push(i);
+        }
+        let found = buf.find(|&x| x == 3);
+        assert_eq!(found, Some(&3));
+    }
+
+    #[test]
+    fn test_ring_buffer_find_absent() {
+        let mut buf = RingBuffer::new(10);
+        for i in 0u32..5 {
+            buf.push(i);
+        }
+        assert!(buf.find(|&x| x == 99).is_none());
+    }
+
+    #[test]
+    fn test_ring_buffer_capacity_one_overflow() {
+        // Capacity of 1: each push replaces the only element
+        let mut buf = RingBuffer::new(1);
+        buf.push(10u32);
+        assert_eq!(buf.len(), 1);
+        assert_eq!(buf.get(0), Some(&10));
+        buf.push(20u32);
+        assert_eq!(buf.len(), 1);
+        assert_eq!(buf.get(0), Some(&20));
+    }
+
+    #[test]
+    fn test_ring_buffer_iter_order() {
+        let mut buf = RingBuffer::new(5);
+        for i in 0u32..5 {
+            buf.push(i);
+        }
+        let collected: Vec<u32> = buf.iter().copied().collect();
+        assert_eq!(collected, vec![0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_ring_buffer_iter_after_overflow_preserves_insertion_order() {
+        // Push 7 items into capacity-5 buffer; first 2 are evicted
+        let mut buf = RingBuffer::new(5);
+        for i in 0u32..7 {
+            buf.push(i);
+        }
+        let collected: Vec<u32> = buf.iter().copied().collect();
+        assert_eq!(collected, vec![2, 3, 4, 5, 6]);
+    }
+
+    #[test]
+    fn test_ring_buffer_empty_drain() {
+        let mut buf: RingBuffer<u32> = RingBuffer::new(10);
+        let drained = buf.drain();
+        assert!(drained.is_empty());
+    }
 }

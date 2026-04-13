@@ -380,6 +380,137 @@ pub fn parse_packet(
 mod tests {
     use super::*;
 
+    // -----------------------------------------------------------------------
+    // fnv1a_hash
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_fnv1a_hash_empty() {
+        // Empty input must return the FNV-1a offset basis unchanged
+        let result = fnv1a_hash(b"");
+        assert_eq!(result, 0xcbf29ce484222325u64);
+    }
+
+    #[test]
+    fn test_fnv1a_hash_deterministic() {
+        let a = fnv1a_hash(b"hello");
+        let b = fnv1a_hash(b"hello");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_fnv1a_hash_differs_on_different_input() {
+        let a = fnv1a_hash(b"hello");
+        let b = fnv1a_hash(b"world");
+        assert_ne!(a, b);
+    }
+
+    // -----------------------------------------------------------------------
+    // compute_stream_id
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_compute_stream_id_symmetric() {
+        // Forward and reverse direction must produce the same ID
+        let fwd = compute_stream_id("192.168.1.1", 12345, "10.0.0.1", 80);
+        let rev = compute_stream_id("10.0.0.1", 80, "192.168.1.1", 12345);
+        assert_eq!(fwd, rev);
+    }
+
+    #[test]
+    fn test_compute_stream_id_different_flows() {
+        let a = compute_stream_id("192.168.1.1", 1234, "10.0.0.1", 80);
+        let b = compute_stream_id("192.168.1.1", 1234, "10.0.0.2", 80);
+        assert_ne!(
+            a, b,
+            "Different destination IPs must produce different stream IDs"
+        );
+    }
+
+    #[test]
+    fn test_compute_stream_id_different_ports() {
+        let a = compute_stream_id("1.2.3.4", 100, "5.6.7.8", 200);
+        let b = compute_stream_id("1.2.3.4", 101, "5.6.7.8", 200);
+        assert_ne!(
+            a, b,
+            "Different source ports must produce different stream IDs"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // format_tcp_flags
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_format_tcp_flags_empty() {
+        let flags = TcpFlags {
+            syn: false,
+            ack: false,
+            fin: false,
+            rst: false,
+            psh: false,
+            urg: false,
+            ece: false,
+            cwr: false,
+        };
+        assert_eq!(format_tcp_flags(&flags), "");
+    }
+
+    #[test]
+    fn test_format_tcp_flags_syn_ack() {
+        let flags = TcpFlags {
+            syn: true,
+            ack: true,
+            fin: false,
+            rst: false,
+            psh: false,
+            urg: false,
+            ece: false,
+            cwr: false,
+        };
+        assert_eq!(format_tcp_flags(&flags), " [SYN, ACK]");
+    }
+
+    #[test]
+    fn test_format_tcp_flags_rst_only() {
+        let flags = TcpFlags {
+            syn: false,
+            ack: false,
+            fin: false,
+            rst: true,
+            psh: false,
+            urg: false,
+            ece: false,
+            cwr: false,
+        };
+        assert_eq!(format_tcp_flags(&flags), " [RST]");
+    }
+
+    #[test]
+    fn test_format_tcp_flags_all_set() {
+        let flags = TcpFlags {
+            syn: true,
+            ack: true,
+            fin: true,
+            rst: true,
+            psh: true,
+            urg: true,
+            ece: true,
+            cwr: true,
+        };
+        let result = format_tcp_flags(&flags);
+        assert!(result.contains("SYN"));
+        assert!(result.contains("ACK"));
+        assert!(result.contains("FIN"));
+        assert!(result.contains("RST"));
+        assert!(result.contains("PSH"));
+        assert!(result.contains("URG"));
+        assert!(result.contains("ECE"));
+        assert!(result.contains("CWR"));
+        assert!(result.starts_with(" ["));
+        assert!(result.ends_with(']'));
+    }
+
     #[test]
     fn test_parse_http_cap_first_5_packets() {
         let mut cap =

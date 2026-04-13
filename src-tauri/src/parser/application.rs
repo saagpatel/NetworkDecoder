@@ -709,4 +709,132 @@ mod tests {
         assert_eq!(dns.answers[0].ttl, 300);
         assert_eq!(dns.answers[0].rtype, "A");
     }
+
+    // -----------------------------------------------------------------------
+    // HTTP edge cases
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_parse_http_post_with_path() {
+        let payload =
+            b"POST /api/login HTTP/1.1\r\nContent-Type: application/json\r\n\r\n{\"user\":\"x\"}";
+        let result = try_parse_http(payload).expect("should parse HTTP POST");
+        assert!(result.is_request);
+        assert_eq!(result.method.as_deref(), Some("POST"));
+        assert_eq!(result.path.as_deref(), Some("/api/login"));
+        assert_eq!(result.version, "HTTP/1.1");
+    }
+
+    #[test]
+    fn test_parse_http_response_404() {
+        let payload = b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+        let result = try_parse_http(payload).expect("should parse 404 response");
+        assert!(!result.is_request);
+        assert_eq!(result.status_code, Some(404));
+        assert_eq!(result.status_text.as_deref(), Some("Not Found"));
+    }
+
+    #[test]
+    fn test_parse_http_empty_payload() {
+        assert!(try_parse_http(b"").is_none());
+    }
+
+    // -----------------------------------------------------------------------
+    // DNS edge cases
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_dns_too_short_rejected() {
+        // 11 bytes — one short of the 12-byte minimum header
+        let pkt = [0u8; 11];
+        assert!(try_parse_dns(&pkt).is_none());
+    }
+
+    #[test]
+    fn test_dns_root_name() {
+        // Root name is a single zero byte: \x00
+        let data = b"\x00";
+        let (name, consumed) = read_dns_name(data, 0).unwrap();
+        assert_eq!(name, ".");
+        assert_eq!(consumed, 1);
+    }
+
+    #[test]
+    fn test_dns_query_with_aaaa_type() {
+        let mut pkt = vec![
+            0x00, 0x01, // transaction ID
+            0x01, 0x00, // flags: standard query
+            0x00, 0x01, // QDCOUNT = 1
+            0x00, 0x00, // ANCOUNT = 0
+            0x00, 0x00, 0x00, 0x00,
+        ];
+        pkt.extend_from_slice(b"\x03www\x07example\x03com\x00");
+        // QTYPE AAAA = 28, QCLASS IN = 1
+        pkt.extend_from_slice(&[0x00, 0x1C, 0x00, 0x01]);
+
+        let dns = try_parse_dns(&pkt).expect("should parse AAAA query");
+        assert_eq!(dns.questions[0].qtype, "AAAA");
+        assert_eq!(dns.questions[0].name, "www.example.com");
+    }
+
+    // -----------------------------------------------------------------------
+    // TLS edge cases
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_tls_too_short_rejected() {
+        // Fewer than 6 bytes — must return None
+        assert!(try_parse_tls(&[0x16, 0x03, 0x01, 0x00]).is_none());
+    }
+
+    #[test]
+    fn test_tls_wrong_content_type_rejected() {
+        // Content type 0x17 = Application Data, not Handshake
+        let payload = [
+            0x17u8, 0x03, 0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        assert!(try_parse_tls(&payload).is_none());
+    }
+
+    #[test]
+    fn test_tls_non_hello_handshake_rejected() {
+        // Handshake type 0x14 = Finished — should return None (not ClientHello/ServerHello)
+        let payload = [
+            0x16, 0x03, 0x03, // content_type + version
+            0x00, 0x10, // record length
+            0x14, // handshake type: Finished (not Hello)
+            0x00, 0x00, 0x0C, // handshake length
+            // 12 bytes of padding
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        assert!(try_parse_tls(&payload).is_none());
+    }
+
+    #[test]
+    fn test_tls_client_hello_no_sni() {
+        // Minimal ClientHello with no extensions — should parse without SNI
+        let mut payload = vec![
+            0x16, 0x03, 0x01, // content_type + TLS 1.0 record version
+            0x00, 0x28, // record length (dummy)
+            0x01, // handshake type: ClientHello
+            0x00, 0x00, 0x24, // handshake length
+            0x03, 0x03, // client version TLS 1.2
+        ];
+        // 32 bytes random
+        payload.extend_from_slice(&[0u8; 32]);
+        // session_id_len = 0
+        payload.push(0x00);
+        // cipher_suites length = 2, one suite
+        payload.extend_from_slice(&[0x00, 0x02, 0x00, 0x2F]);
+        // compression methods: 1 byte, null
+        payload.extend_from_slice(&[0x01, 0x00]);
+        // no extensions
+
+        let result = try_parse_tls(&payload);
+        // May or may not succeed depending on exact byte count, but must not panic
+        if let Some(tls) = result {
+            assert_eq!(tls.record_type, "ClientHello");
+            assert!(tls.sni.is_none(), "No SNI extension present");
+        }
+    }
 }

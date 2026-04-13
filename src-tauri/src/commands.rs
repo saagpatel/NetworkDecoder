@@ -144,6 +144,90 @@ mod tests {
     use super::*;
     use crate::state::AppState;
 
+    // -----------------------------------------------------------------------
+    // write_pcap_file — pure output tests (no pcap/Tauri state required)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_write_pcap_global_header_magic() {
+        let tmp = std::env::temp_dir().join("nd_test_magic.pcap");
+        let path = tmp.to_str().unwrap();
+        let written =
+            write_pcap_file(path, &[]).expect("write should succeed for empty packet list");
+        assert_eq!(written, 0);
+        let bytes = std::fs::read(path).unwrap();
+        // First 4 bytes must be the pcap little-endian magic: d4 c3 b2 a1
+        assert_eq!(&bytes[0..4], &[0xd4, 0xc3, 0xb2, 0xa1]);
+        // Global header is exactly 24 bytes
+        assert_eq!(bytes.len(), 24);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_write_pcap_single_packet_byte_count() {
+        let tmp = std::env::temp_dir().join("nd_test_single.pcap");
+        let path = tmp.to_str().unwrap();
+        let payload = vec![0xAA, 0xBB, 0xCC, 0xDD];
+        let timestamp_us: i64 = 1_000_000; // 1 second
+        let packets = vec![(
+            timestamp_us,
+            payload.len() as u32,
+            payload.len() as u32,
+            payload.clone(),
+        )];
+
+        let written = write_pcap_file(path, &packets).expect("write should succeed");
+        assert_eq!(written, 1);
+
+        let bytes = std::fs::read(path).unwrap();
+        // 24 bytes global header + 16 bytes packet record header + 4 bytes payload = 44
+        assert_eq!(bytes.len(), 44);
+        // Payload must appear at offset 40
+        assert_eq!(&bytes[40..44], &[0xAA, 0xBB, 0xCC, 0xDD]);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_write_pcap_timestamp_encoding() {
+        let tmp = std::env::temp_dir().join("nd_test_ts.pcap");
+        let path = tmp.to_str().unwrap();
+        // timestamp_us = 2_500_000 → ts_sec=2, ts_usec=500_000
+        let timestamp_us: i64 = 2_500_000;
+        let packets = vec![(timestamp_us, 0u32, 0u32, vec![])];
+        write_pcap_file(path, &packets).unwrap();
+
+        let bytes = std::fs::read(path).unwrap();
+        // ts_sec at offset 24, little-endian
+        let ts_sec = u32::from_le_bytes([bytes[24], bytes[25], bytes[26], bytes[27]]);
+        let ts_usec = u32::from_le_bytes([bytes[28], bytes[29], bytes[30], bytes[31]]);
+        assert_eq!(ts_sec, 2);
+        assert_eq!(ts_usec, 500_000);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_write_pcap_returns_packet_count() {
+        let tmp = std::env::temp_dir().join("nd_test_count.pcap");
+        let path = tmp.to_str().unwrap();
+        let pkts: Vec<(i64, u32, u32, Vec<u8>)> = (0..5)
+            .map(|i| (i * 1_000_000, 0u32, 0u32, vec![]))
+            .collect();
+        let written = write_pcap_file(path, &pkts).unwrap();
+        assert_eq!(written, 5);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_timestamp_arithmetic_units() {
+        // Verify the arithmetic used in parse/export is consistent:
+        // timestamp_us / 1_000_000 → seconds, timestamp_us % 1_000_000 → microseconds
+        let timestamp_us: i64 = 3_750_123;
+        let ts_sec = (timestamp_us / 1_000_000) as u32;
+        let ts_usec = (timestamp_us % 1_000_000) as u32;
+        assert_eq!(ts_sec, 3);
+        assert_eq!(ts_usec, 750_123);
+    }
+
     #[test]
     fn test_export_pcap_round_trip() {
         let state = AppState::new();
