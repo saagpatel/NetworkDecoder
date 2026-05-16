@@ -43,3 +43,55 @@ Requires libpcap installed on the system (`brew install libpcap` on macOS). Live
 ## Known Issues
 - TLS payload decryption not supported — requires SSLKEYLOGFILE integration (out of scope)
 - Privilege escalation UX for live capture may require manual permissions on first run
+
+<!-- portfolio-context:start -->
+# Portfolio Context
+
+## What This Project Is
+
+NetworkDecoder is a local desktop network-inspection tool for capturing live traffic or importing PCAP files, decoding protocol metadata, and visualizing packet streams without sending data off-machine. It is built around a Tauri app with a Rust packet pipeline and a React/TypeScript interface for switching between packet-list, flow, and protocol-oriented views.
+
+## Current State
+
+Phases 0-4 complete — all planned functionality shipped in a single comprehensive commit:
+- Protocol decoders: HTTP, DNS, TLS (handshake metadata), QUIC
+- Live capture from network interfaces + PCAP file import
+- Three switchable visual modes
+- 50k-packet ring buffer with batched 100ms Tauri event emission
+- Privilege-escalation helper binary for capture (main app never runs as root)
+
+## Stack
+
+- **Rust**: 1.77+ (Tauri backend, packet capture, protocol parsing)
+- **React**: 18.x (frontend UI, hooks only)
+- **TypeScript**: 5.x (strict mode)
+- **Tauri**: 2.x (desktop shell)
+- **Zustand**: 4.x (state management)
+- **@tanstack/react-virtual**: 3.x (packet list virtualization for 50k+ packets)
+- **pcap**: 2.x (Rust — wraps libpcap, live capture + .pcap/.pcapng files)
+- **pnet**: 0.35 (Rust — Ethernet/IP/TCP/UDP/ICMP parsing)
+- **Tailwind CSS**: 3.x
+- **Vite**: 5.x
+
+## How To Run
+
+```bash
+npm install
+npm run tauri dev
+
+# Production build
+npm run tauri build
+```
+
+Requires libpcap installed on the system (`brew install libpcap` on macOS). Live capture requires the helper binary to be granted capture permissions.
+
+## Known Risks
+
+- TLS payload decryption not supported — requires SSLKEYLOGFILE integration (out of scope)
+- Privilege escalation UX for live capture may require manual permissions on first run
+
+## Next Recommended Move
+
+Use this context plus the README and supporting docs to resume the next active task, then promote the repo beyond minimum-viable by capturing a dedicated handoff, roadmap, or discovery artifact.
+
+<!-- portfolio-context:end -->
