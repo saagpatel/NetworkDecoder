@@ -4,19 +4,19 @@ A macOS desktop app that captures network packets from live interfaces or import
 
 ## Tech Stack
 - **Rust**: 1.77+ (Tauri backend, packet capture, protocol parsing)
-- **React**: 18.x (frontend UI, hooks only)
+- **React**: 19.x (frontend UI, hooks only)
 - **TypeScript**: 5.x (strict mode)
 - **Tauri**: 2.x (desktop shell)
-- **Zustand**: 4.x (state management)
+- **Zustand**: 5.x (state management)
 - **@tanstack/react-virtual**: 3.x (packet list virtualization for 50k+ packets)
 - **pcap**: 2.x (Rust — wraps libpcap, live capture + .pcap/.pcapng files)
 - **pnet**: 0.35 (Rust — Ethernet/IP/TCP/UDP/ICMP parsing)
-- **Tailwind CSS**: 3.x
-- **Vite**: 5.x
+- **Tailwind CSS**: 4.x
+- **Vite**: 7.x
 
 ## Status
 Phases 0-4 complete — all planned functionality shipped in a single comprehensive commit:
-- Protocol decoders: HTTP, DNS, TLS (handshake metadata), QUIC
+- Protocol decoders: HTTP, DNS, TLS (handshake metadata)
 - Live capture from network interfaces + PCAP file import
 - Three switchable visual modes
 - 50k-packet ring buffer with batched 100ms Tauri event emission
@@ -54,7 +54,7 @@ NetworkDecoder is a local desktop network-inspection tool for capturing live tra
 ## Current State
 
 Phases 0-4 complete — all planned functionality shipped in a single comprehensive commit:
-- Protocol decoders: HTTP, DNS, TLS (handshake metadata), QUIC
+- Protocol decoders: HTTP, DNS, TLS (handshake metadata)
 - Live capture from network interfaces + PCAP file import
 - Three switchable visual modes
 - 50k-packet ring buffer with batched 100ms Tauri event emission
@@ -63,15 +63,15 @@ Phases 0-4 complete — all planned functionality shipped in a single comprehens
 ## Stack
 
 - **Rust**: 1.77+ (Tauri backend, packet capture, protocol parsing)
-- **React**: 18.x (frontend UI, hooks only)
+- **React**: 19.x (frontend UI, hooks only)
 - **TypeScript**: 5.x (strict mode)
 - **Tauri**: 2.x (desktop shell)
-- **Zustand**: 4.x (state management)
+- **Zustand**: 5.x (state management)
 - **@tanstack/react-virtual**: 3.x (packet list virtualization for 50k+ packets)
 - **pcap**: 2.x (Rust — wraps libpcap, live capture + .pcap/.pcapng files)
 - **pnet**: 0.35 (Rust — Ethernet/IP/TCP/UDP/ICMP parsing)
-- **Tailwind CSS**: 3.x
-- **Vite**: 5.x
+- **Tailwind CSS**: 4.x
+- **Vite**: 7.x
 
 ## How To Run
 

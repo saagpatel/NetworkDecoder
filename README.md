@@ -1,6 +1,6 @@
 # NetworkDecoder
 
-[![Rust](https://img.shields.io/badge/Rust-%23dea584?style=flat-square&logo=rust)](#) [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript)](#) [![Status](https://img.shields.io/badge/status-WIP-yellow?style=flat-square)](#)
+[![Rust](https://img.shields.io/badge/Rust-%23dea584?style=flat-square&logo=rust)](#) [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript)](#) [![Status](https://img.shields.io/badge/status-v1.0.0-green?style=flat-square)](#)
 
 > macOS desktop packet decoder with layer-by-layer protocol analysis and three visual modes.
 
@@ -36,7 +36,7 @@ sudo npm run tauri dev
 | Frontend | React + TypeScript |
 | Platform | macOS 13+ |
 
-> **Status: Work in Progress** — Core decoding and all three views functional on macOS. PCAP export and live-capture UI in progress.
+> **Status: v1.0.0** — All phases complete. Live capture, PCAP import/export, and all three view modes fully implemented.
 
 ## License
 
