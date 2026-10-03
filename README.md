@@ -70,7 +70,7 @@ or fixture checks with `sudo`, or capture workstation traffic as a smoke test.
 | Frontend | React + TypeScript |
 | Platform | macOS 13+ |
 
-> **Status: v1.0.0** — All phases complete. Live capture, PCAP import/export, and all three view modes fully implemented.
+> **Status: v1.0.0** — Live capture, PCAP import/export, and all three view modes implemented; privilege escalation is not implemented.
 
 ## License
 
